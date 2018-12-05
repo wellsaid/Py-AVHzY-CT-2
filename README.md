@@ -12,7 +12,7 @@ This python utilities allows to interact with the AVHzy CT-2 power meter as the 
 
 2. Make it executable
 
-> chmod +x ./py_AVHzY_CT2
+    chmod +x ./py_AVHzY_CT2
 
 ## Usage example
 
@@ -21,10 +21,10 @@ Continously read data:
     ./py_AVHzY_CT2 read
 
 Read 4 samples every 5 seconds and stop
-> ./py_AVHzY_CT2 read -r 4 -t 5
+    ./py_AVHzY_CT2 read -r 4 -t 5
 
 Continously read and save to a file:
-> ./py_AVHzY_CT2 read -o file.csv
+    ./py_AVHzY_CT2 read -o file.csv
 
 ## Release History
 TODO
