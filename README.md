@@ -10,7 +10,7 @@ TODO
 ## Usage example
 TODO
 
-## Release Historyory
+## Release History
 TODO
 
 ## Meta
