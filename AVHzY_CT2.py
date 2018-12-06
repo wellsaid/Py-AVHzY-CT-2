@@ -10,77 +10,78 @@ from time import sleep as sleep
 from sys import exit as exit
 
 # actions along with their description
-actions = [ "list", "read" ]
-action_descriptions = {
-    "list" : "Show this list and exit",
-    "read" : "Reads energy value from the meter" }
+__actions = [ "list", "read" ]
+__action_descriptions = {
+        "list" : "Show this list and exit",
+        "read" : "Reads energy value from the meter" }
 
-first_exec = True
-timestamp = 0
+class AVHzY_CT2:
 
-# ---------------------------------------------- ACTION HANDLERS ------------------------------------------- #
-def action_list():
-    print("Actions list:")
-    for action in action_descriptions:
-        print("  ", action, "\t", action_descriptions[action])
+    def __init__(self, device, action, repeat, time, output):
+        self.__device = device
+        self.__action = action
+        self.__repeat = repeat
+        self.__time = time
+        self.__output = output
+        self.__ser = Serial(self.__device)
 
-def action_read(ser, output):
-    global first_exec
-    global timestamp
+        self.__first_exec = True
+        self.__timestamp = 0
 
-    if first_exec:
-        output.write("time,voltage,current,power,voltageDP,voltageDM\n")
-        first_exec = False
-    
-    ser.write(b"Get Meter Data")
+        # action handlers in a dictionary
+        self.__action_handlers = {
+            "list" : self.__action_list,
+            "read" : self.__action_read }
 
-    voltage = unpack("f", ser.read(4))[0]
-    current = unpack("f", ser.read(4))[0]
-    power = unpack("f", ser.read(4))[0]
-    voltageDP = unpack("f", ser.read(4))[0]
-    voltageDM = unpack("f", ser.read(4))[0]
+    def __del__(self):
+            self.__ser.close();
+            self.__output.close();
 
-    output.write("{0},{1},{2},{3},{4},{5}\n".format(timestamp, voltage, current, power, voltageDP, voltageDM))
-    
-# action handlers in a dictionary
-action_handlers = {
-    "list" : action_list,
-    "read" : action_read }
-# ---------------------------------------------------------------------------------------------------------------------- #
+    def __action_list(self):
+        print("Actions list:")
+        for action in __action_descriptions:
+            print("  ", action, "\t", __action_descriptions[action])
 
-def perform_action(device, action, repeat, time, output):
-    global timestamp
-    
-    if action == "list":
-        action_list()
-        return
-    
-    # -------------------------------------- SERIAL PORT OPENING
-    ser = Serial(device)
-    # TODO:  Set Baud rate and stuff (needed? python defaults are working on my device)
-
-    # -------------------------------------- ACTION LOOP
-    count = 0
-    while count != repeat:
-        action_handlers[action](ser, output)
-        if repeat != -1:
-            count += 1
-        if count != repeat:
-            try:
-                sleep(time)
-            except KeyboardInterrupt:
-                break
-            timestamp += time
-
-    ser.close();
-    output.close();
-
+    def __action_read(self):
+        
+        if self.__first_exec:
+            self.__output.write("time,voltage,current,power,voltageDP,voltageDM\n")
+            self.__first_exec = False
+            
+        self.__ser.write(b"Get Meter Data")
+        
+        voltage = unpack("f", self.__ser.read(4))[0]
+        current = unpack("f", self.__ser.read(4))[0]
+        power = unpack("f", self.__ser.read(4))[0]
+        voltageDP = unpack("f", self.__ser.read(4))[0]
+        voltageDM = unpack("f", self.__ser.read(4))[0]
+        
+        self.__output.write("{0},{1},{2},{3},{4},{5}\n"
+                            .format(self.__timestamp, voltage, current, power, voltageDP, voltageDM))
+        
+    def perform_action(self):
+        if self.__action == "list":
+            self.__action_list()
+            return
+        
+        count = 0
+        while count != self.__repeat:
+            self.__action_handlers[self.__action]()
+            if self.__repeat != -1:
+                count += 1
+            if count != self.__repeat:
+                try:
+                    sleep(self.__time)
+                except KeyboardInterrupt:
+                    break
+                self.__timestamp += self.__time
+                                    
 def main():
     
     # -------------------------------------- OPTION PARSING
     parser = ArgumentParser(description="Program to interact with the AVHzY CT-2 power meter")
     parser.add_argument("action",
-                        metavar="action", choices=actions,
+                        metavar="action", choices=__actions,
                         help="The action to perform [choices: %(choices)s]")
     parser.add_argument("-d", "--device",
                         default="/dev/ttyACM0",
@@ -106,7 +107,7 @@ def main():
         parser.print_usage()
         exit(1)
 
-    perform_action(args.device, args.action, args.repeat, args.time, args.output)
+    AVHzY_CT2(args.device, args.action, args.repeat, args.time, args.output).perform_action()
     exit(0)
 
 if __name__ == "__main__":
