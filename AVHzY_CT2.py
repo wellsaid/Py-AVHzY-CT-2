@@ -15,18 +15,27 @@ __action_descriptions = {
         "list" : "Show this list and exit",
         "read" : "Reads energy value from the meter" }
 
+# values for read operation
+__gets = [ "all", "voltage", "current", "power", "voltageDP", "voltageDM", "energy" ]
+
 class AVHzY_CT2:
 
-    def __init__(self, device, action, repeat, time, output):
-        self.__device = device
+    def __init__(self, device, action, repeat, time, reads, output):
         self.__action = action
         self.__repeat = repeat
         self.__time = time
         self.__output = output
-        self.__ser = Serial(self.__device)
+        self.__ser = Serial(device)
 
         self.__first_exec = True
         self.__timestamp = 0
+        self.__energy = 0
+        self.__prev_timestamp = 0
+
+        if reads == "all":
+            self.__reads = [ "voltage", "current", "power", "voltageDP", "voltageDM", "energy" ]
+        else:
+            self.__reads = reads
 
         # action handlers in a dictionary
         self.__action_handlers = {
@@ -45,7 +54,11 @@ class AVHzY_CT2:
     def __action_read(self):
         
         if self.__first_exec:
-            self.__output.write("time,voltage,current,power,voltageDP,voltageDM\n")
+            self.__output.write("time");
+            for r in self.__reads:
+                self.__output.write(",{0}".format(r))
+            self.__output.write("\n");
+
             self.__first_exec = False
             
         self.__ser.write(b"Get Meter Data")
@@ -55,9 +68,27 @@ class AVHzY_CT2:
         power = unpack("f", self.__ser.read(4))[0]
         voltageDP = unpack("f", self.__ser.read(4))[0]
         voltageDM = unpack("f", self.__ser.read(4))[0]
-        
-        self.__output.write("{0},{1},{2},{3},{4},{5}\n"
-                            .format(self.__timestamp, voltage, current, power, voltageDP, voltageDM))
+        # TODO: compute energy (if contained in __reads vector
+
+        # TODO: print them just if they are contained in __reads vector
+        self.__output.write("{0}".format(self.__timestamp))
+        if "voltage" in self.__reads:
+            self.__output.write(",{0}".format(voltage))
+        if "current" in self.__reads:
+            self.__output.write(",{0}".format(current))
+        if "power" in self.__reads:
+            self.__output.write(",{0}".format(power))
+        if "voltageDP" in self.__reads:
+            self.__output.write(",{0}".format(voltageDP))
+        if "voltageDM" in self.__reads:
+            self.__output.write(",{0}".format(voltageDM))
+        if "energy" in self.__reads:
+            if self.__timestamp == 0:
+                self.__output.write(",0")
+            else:
+                self.__energy = ((self.__timestamp - self.__prev_timestamp)*power)/3600
+                self.__output.write(",{0}".format(self.__energy))
+        self.__output.write("\n")
         
     def perform_action(self):
         if self.__action == "list":
@@ -95,6 +126,9 @@ def main():
     parser.add_argument("-o", "--output",
                         default="-", type=FileType('w'),
                         help="Where to write output of the action [default: stdout]")
+    parser.add_argument("-g", "--get",
+                        default="all", choices=__gets, nargs="+",
+                        help="For read operation: what to get from power meter [choices: %(choices)s default: %(default)s")
     args = parser.parse_args()
 
     if args.repeat < -1:
@@ -107,7 +141,7 @@ def main():
         parser.print_usage()
         exit(1)
 
-    AVHzY_CT2(args.device, args.action, args.repeat, args.time, args.output).perform_action()
+    AVHzY_CT2(args.device, args.action, args.repeat, args.time, args.get, args.output).perform_action()
     exit(0)
 
 if __name__ == "__main__":
