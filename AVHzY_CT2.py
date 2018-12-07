@@ -52,7 +52,6 @@ class AVHzY_CT2:
             print("  ", action, "\t", __action_descriptions[action])
 
     def __action_read(self):
-        
         if self.__first_exec:
             self.__output.write("time");
             for r in self.__reads:
@@ -98,14 +97,18 @@ class AVHzY_CT2:
         count = 0
         while count != self.__repeat:
             self.__action_handlers[self.__action]()
+            
             if self.__repeat != -1:
                 count += 1
+
             if count != self.__repeat:
                 try:
                     sleep(self.__time)
                 except KeyboardInterrupt:
                     break
-                self.__timestamp += self.__time
+
+            self.__prev_timestamp = self.__timestamp
+            self.__timestamp += self.__time
                                     
 def main():
     
