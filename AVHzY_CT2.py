@@ -52,24 +52,24 @@ class AVHzY_CT2:
             print("  ", action, "\t", __action_descriptions[action])
 
     def __action_read(self):
+
         if self.__first_exec:
             self.__output.write("time");
             for r in self.__reads:
                 self.__output.write(",{0}".format(r))
-            self.__output.write("\n");
-
+            self.__output.write("\n")
             self.__first_exec = False
             
         self.__ser.write(b"Get Meter Data")
+
+        sleep(0.02)
         
         voltage = unpack("f", self.__ser.read(4))[0]
         current = unpack("f", self.__ser.read(4))[0]
         power = unpack("f", self.__ser.read(4))[0]
         voltageDP = unpack("f", self.__ser.read(4))[0]
         voltageDM = unpack("f", self.__ser.read(4))[0]
-        # TODO: compute energy (if contained in __reads vector
 
-        # TODO: print them just if they are contained in __reads vector
         self.__output.write("{0}".format(self.__timestamp))
         if "voltage" in self.__reads:
             self.__output.write(",{0}".format(voltage))
@@ -85,9 +85,10 @@ class AVHzY_CT2:
             if self.__timestamp == 0:
                 self.__output.write(",0")
             else:
-                self.__energy = ((self.__timestamp - self.__prev_timestamp)*power)/3600
+                self.__energy += ((self.__timestamp - self.__prev_timestamp)*power)/3600
                 self.__output.write(",{0}".format(self.__energy))
         self.__output.write("\n")
+        self.__output.flush()
         
     def perform_action(self):
         if self.__action == "list":
@@ -96,19 +97,19 @@ class AVHzY_CT2:
         
         count = 0
         while count != self.__repeat:
-            self.__action_handlers[self.__action]()
-            
-            if self.__repeat != -1:
-                count += 1
 
-            if count != self.__repeat:
-                try:
-                    sleep(self.__time)
-                except KeyboardInterrupt:
-                    break
+            self.__action_handlers[self.__action]()
+
+            try:
+                sleep(self.__time - 0.02)
+            except KeyboardInterrupt:
+                break
 
             self.__prev_timestamp = self.__timestamp
             self.__timestamp += self.__time
+
+            if self.__repeat != -1:
+                count += 1
                                     
 def main():
     
