@@ -110,6 +110,10 @@ class AVHzY_CT2:
 
             if self.__repeat != -1:
                 count += 1
+
+    def change_output(self, output):
+        self.__output.close()
+        self.__output = output
                                     
 def main():
     
