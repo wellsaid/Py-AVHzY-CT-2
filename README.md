@@ -37,4 +37,4 @@ Continously read and save to a file:
 
 Benedetto Girgenti - benedetto.girgenti@protonmail.com
 
-TODO: Distributed under the XYZ license. See ``LICENSE`` for more information
+TODO: Distributed under the GPL v3.0 license. See ``LICENSE.md`` for more information
